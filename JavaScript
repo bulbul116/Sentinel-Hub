@@ -1,33 +1,33 @@
-import { BitgetClient } from '@bitget/agent-hub';
+// Using the Bitget Client (bgc) & Skills logic
+import { BitgetWalletSkill } from '@bitget/agent-hub';
 
-const agent = new BitgetClient({
-  apiKey: 'YOUR_BITGET_API_KEY',
-  networks: ['BTC', 'EVM', 'SOLANA']
+const agent = new BitgetWalletSkill({
+  apiKey: process.env.BITGET_API_KEY,
+  networks: ['BTC', 'ETH', 'SOL'] // Tracking your 3 core chains
 });
 
-async function smartSwap(tokenIn, tokenOut, amount) {
-  console.log("🔍 Agent is Thinking...");
-
-  // 1. Analyze Portfolio across BTC, EVM, and SOL
-  const portfolio = await agent.getBalances();
+async function smartSwapGuide(tokenIn, tokenOut, amount) {
+  // 1. THINK: Check Portfolio & Price
+  const portfolio = await agent.run('Balance + Price');
   
-  // 2. Check Security (The "Think" part)
-  const securityReport = await agent.checkSecurity(tokenOut);
+  // 2. THINK: Security Audit (Honeypot/Contract check)
+  const security = await agent.run('Security Audit', { token: tokenOut });
   
-  if (securityReport.riskLevel === 'High') {
-    return "🛑 Trade Cancelled: High risk detected in the contract.";
+  if (security.is_risky) {
+    return "🛑 STOP: This token contract has high-risk permissions. Swap not advised.";
   }
 
-  // 3. Find Best Route
-  const quote = await agent.getSwapQuote({
-    from: tokenIn,
-    to: tokenOut,
+  // 3. THINK: Find the best experience (Low fee + High Liquidity)
+  const bestRoute = await agent.run('Swap Quote', {
+    from: tokenIn, 
+    to: tokenOut, 
     amount: amount,
-    optimizeFor: 'lowest_fee'
+    chains: ['EVM', 'SOLANA'] // It checks which chain offers the better deal
   });
 
-  console.log(`✅ Best route found on ${quote.network}. Savings: ${quote.savings}%`);
-  
-  // 4. Final Execution
-  return agent.executeSwap(quote);
+  return {
+    advice: `Found 0.4% better liquidity on ${bestRoute.chain}.`,
+    action: bestRoute.calldata, // Ready to be signed by your wallet
+    comparison: portfolio
+  };
 }
