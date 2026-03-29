@@ -1,0 +1,33 @@
+import { BitgetClient } from '@bitget/agent-hub';
+
+const agent = new BitgetClient({
+  apiKey: 'YOUR_BITGET_API_KEY',
+  networks: ['BTC', 'EVM', 'SOLANA']
+});
+
+async function smartSwap(tokenIn, tokenOut, amount) {
+  console.log("🔍 Agent is Thinking...");
+
+  // 1. Analyze Portfolio across BTC, EVM, and SOL
+  const portfolio = await agent.getBalances();
+  
+  // 2. Check Security (The "Think" part)
+  const securityReport = await agent.checkSecurity(tokenOut);
+  
+  if (securityReport.riskLevel === 'High') {
+    return "🛑 Trade Cancelled: High risk detected in the contract.";
+  }
+
+  // 3. Find Best Route
+  const quote = await agent.getSwapQuote({
+    from: tokenIn,
+    to: tokenOut,
+    amount: amount,
+    optimizeFor: 'lowest_fee'
+  });
+
+  console.log(`✅ Best route found on ${quote.network}. Savings: ${quote.savings}%`);
+  
+  // 4. Final Execution
+  return agent.executeSwap(quote);
+}
